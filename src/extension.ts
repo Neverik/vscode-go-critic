@@ -1,29 +1,60 @@
 'use strict';
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as cp from 'child_process';
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "go-critic" is now active!');
-
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with  registerCommand
-    // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('extension.sayHello', () => {
-        // The code you place here will be executed every time your command is executed
-
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello World!');
-    });
-
-    context.subscriptions.push(disposable);
+    let critic = new GoCritic();	
+	critic.activate(context.subscriptions);
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+class GoCritic {
+	diagnosticCollection: vscode.DiagnosticCollection = vscode.languages.createDiagnosticCollection();
+
+	activate(subscriptions: vscode.Disposable[]) {
+
+		vscode.workspace.onDidOpenTextDocument(this.doLint, this, subscriptions);
+		vscode.workspace.onDidCloseTextDocument((textDocument)=> {
+			this.diagnosticCollection.delete(textDocument.uri);
+		}, null, subscriptions);
+
+		vscode.workspace.onDidSaveTextDocument(this.doLint, this);
+		vscode.workspace.textDocuments.forEach(this.doLint, this);
+	}
+
+	dispose(): void {
+		this.diagnosticCollection.clear();
+		this.diagnosticCollection.dispose();
+	}
+
+    doLint(textDocument: vscode.TextDocument) {
+        if (textDocument.languageId !== 'go') {
+            return;
+        }
+
+        let args =  ['check-package', '--json', textDocument.fileName];
+
+        cp.exec("gocritic " + args.join(" "), (_, __, decoded) => {
+            let diagnostics: vscode.Diagnostic[] = [];
+            const warnings = decoded.split("}").filter(x => x.includes("{")).map(x => JSON.parse(x + "}"));
+            warnings.forEach((item: {location: string, rule: string, warning: string}) => {
+                let [line, col] = item.location.split(":").splice(1).map((x: string) => Number.parseInt(x));
+                col = col - 1;
+                line = line - 1;
+                const startPosition = new vscode.Position(line, col);
+                const txt = textDocument.getText(
+                    new vscode.Range(
+                        startPosition,
+                        new vscode.Position(line + 1, col)));
+                const offset = txt.split(" ").length;
+                let range = new vscode.Range(startPosition, new vscode.Position(line, col + offset));
+                let message = `${item.rule}: ${item.warning}`;
+                let diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+                diagnostics.push(diagnostic);
+            });
+            this.diagnosticCollection.set(textDocument.uri, diagnostics);
+        });
+    }
 }
