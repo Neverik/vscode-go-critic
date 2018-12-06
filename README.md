@@ -12,12 +12,13 @@ This extension provides integration with ```go-critic```, which is probably the 
 
 ## Requirements
 
-Go-critic:
-```
-go get -u github.com/go-critic/go-critic/...
-```
+Go-critic, refer to [the official instructions](https://github.com/go-critic/go-critic#installation).
 
 ### 0.0.1
 
 Initial development release.
 Adds basic go-critic support.
+
+### 0.1.0
+
+Adopted the new `gocritic`, refactored code.

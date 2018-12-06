@@ -33,28 +33,54 @@ class GoCritic {
         if (textDocument.languageId !== 'go') {
             return;
         }
-
-        let args =  ['check-package', '--json', textDocument.fileName];
-
-        cp.exec("gocritic " + args.join(" "), (_, __, decoded) => {
+        
+        this.getGoCriticOutput(textDocument.fileName).then((warnings) => {
             let diagnostics: vscode.Diagnostic[] = [];
-            const warnings = decoded.split("}").filter(x => x.includes("{")).map(x => JSON.parse(x + "}"));
-            warnings.forEach((item: {location: string, rule: string, warning: string}) => {
-                let [line, col] = item.location.split(":").splice(1).map((x: string) => Number.parseInt(x));
-                col = col - 1;
-                line = line - 1;
-                const startPosition = new vscode.Position(line, col);
-                const txt = textDocument.getText(
-                    new vscode.Range(
-                        startPosition,
-                        new vscode.Position(line + 1, col)));
-                const offset = txt.split(" ").length;
-                let range = new vscode.Range(startPosition, new vscode.Position(line, col + offset));
+            warnings.forEach((item) => {
+                let lineSnippet = textDocument.lineAt(item.line).text;
+                let startCol = lineSnippet.length - lineSnippet.trimLeft().length;
+                let endCol = lineSnippet.length;
+                let [startPosition, endPosition] = [
+                    new vscode.Position(item.line, startCol),
+                    new vscode.Position(item.line, endCol)
+                ];
+                let range = new vscode.Range(startPosition, endPosition);
                 let message = `${item.rule}: ${item.warning}`;
                 let diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
                 diagnostics.push(diagnostic);
             });
             this.diagnosticCollection.set(textDocument.uri, diagnostics);
+        }).catch(err => {
+            console.error(err);
+        });
+    }
+
+    private getGoCriticOutput(filename: string): Promise<{line: number, col: number, rule: string, warning: string}[]> {
+        let args =  ['check', filename];
+        return new Promise((resolve, reject) => {
+            cp.exec("gocritic " + args.join(" "), (err, _, stdErr) => {
+                let decoded = stdErr;
+                if (err !== null) {
+                    if (err.message.startsWith("Command failed")) {
+                        decoded = err.message.split("\n").slice(1).join("\n");
+                    } else {
+                        reject(err);
+                    }
+                }
+                const warnings = decoded.split("\n").filter(x => x !== "").map(x => {
+                    let colonSections = x.split(":");
+                    let [line, col] = colonSections.slice(1, 3).map(i => Number.parseInt(i) - 1);
+                    let rule = colonSections[3];
+                    let warning = colonSections.slice(4).join(":");
+                    return {
+                        line,
+                        col,
+                        rule,
+                        warning
+                    };
+                });
+                resolve(warnings);
+            });
         });
     }
 }

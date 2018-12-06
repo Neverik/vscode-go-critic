@@ -1,38 +1,49 @@
 {
-    "name": "go-critic",
-    "displayName": "Go Critic",
-    "description": "Integration for the go-critic golang linter.",
-    "version": "0.0.1",
-    "publisher": "neverik",
-    "engines": {
-        "vscode": "^1.29.0"
-    },
-    "categories": [
-        "Linters"
-    ],
-    "activationEvents": [
-        "onLanguage:go"
-    ],
-    "main": "./out/extension",
-    "contributes": {
-		"languages": [
-			{
-				"id": "go",
-				"aliases": ["Go", "go", "golang", "Golang"],
-				"extensions": [".go"]
-			}
-		]
-	},
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.21",
-        "tslint": "^5.8.0",
-        "@types/node": "^8.10.25"
-    }
+  "name": "go-critic",
+  "displayName": "Go Critic",
+  "description": "Integration for the go-critic golang linter.",
+  "version": "0.1.0",
+  "publisher": "neverik",
+  "engines": {
+    "vscode": "^1.29.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:go"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "go",
+        "aliases": [
+          "Go",
+          "go",
+          "golang",
+          "Golang"
+        ],
+        "extensions": [
+          ".go"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "typescript": "^2.6.1",
+    "vscode": "^1.1.21",
+    "tslint": "^5.8.0",
+    "@types/node": "^8.10.25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/neverik/vscode-go-critic.git"
+  }
 }
